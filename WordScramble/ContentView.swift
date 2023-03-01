@@ -12,6 +12,15 @@ struct ContentView: View {
     @State private var rootWord = ""
     @State private var newWord = ""
     
+    var playerScore: Int {
+        var totalLetters: Int = 0
+        for word in usedWords {
+            totalLetters += word.count
+        }
+        
+        return totalLetters
+    }
+    
     @State private var errorTitle = ""
     @State private var errorMessage = ""
     @State private var showingError = false
@@ -19,6 +28,14 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             List {
+                Section {
+                    Text("Score: \(playerScore)")
+                        .font(.title.weight(.heavy))
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+                }
+                
                 Section {
                     TextField("Enter your word", text: $newWord)
                         .autocapitalization(.none) // Turns off capitalisation
@@ -41,12 +58,25 @@ struct ContentView: View {
             } message: {
                 Text(errorMessage)
             }
+            .toolbar {
+                Button("Next Word", action: startGame)
+            }
         }
     }
     
     func addNewWord() {
         let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard answer.count > 0 else { return }
+        
+        guard answer.count >= 3 else {
+            wordError(title: "Word too short.", message: "Each word must be at least 3 letters.")
+            return
+        }
+        
+        guard answer != rootWord else {
+            wordError(title: "Don't copy!", message: "The word you provided is the same as the root word.")
+            return
+        }
         
         guard isOriginal(word: answer) else {
             wordError(title: "Word used already.", message: "Be more original!")
@@ -70,6 +100,8 @@ struct ContentView: View {
     }
     
     func startGame() {
+        usedWords = []
+        
         if let fileURL = Bundle.main.url(forResource: "start", withExtension: "txt") {
             if let startWords = try? String(contentsOf: fileURL) {
                 let allWords = startWords.components(separatedBy: "\n")
